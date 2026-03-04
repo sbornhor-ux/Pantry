@@ -120,7 +120,7 @@ function ld(k,fb){try{var d=localStorage.getItem(k);return d?JSON.parse(d):fb}ca
 function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 
 /* ═══ CURATED POOLS ═══ */
-var MEAT_POOL=["Chicken Thighs (2 lbs)","Chicken Breast (2 lbs)","Chicken Tenders (1 bag)","Flank Steak (2 lbs)","NY Strip Steak (1 lb)","Beef Chuck Roast (3 lbs)","Ground Pork (1 lb)","Pork Cutlets (4)","Salmon Filets (1 lb)","Italian Sausage (1 pack)","Andouille Sausage (1 pack)","Smoked Sausage (1 pack)","Kielbasa (1 lb)","Bacon (1 pack)","Ground Beef (1 lb)","Ground Turkey (1 lb)","Shrimp (1 lb)","Tilapia (1 lb)"];
+var MEAT_POOL=["Chicken Thighs (2 lbs)","Chicken Breast (2 lbs)","Chicken Tenders (1 bag)","Rotisserie Chicken (1)","Flank Steak (2 lbs)","NY Strip Steak (1 lb)","Beef Chuck Roast (3 lbs)","Ground Pork (1 lb)","Pork Cutlets (4)","Salmon Filets (1 lb)","Italian Sausage (1 pack)","Andouille Sausage (1 pack)","Smoked Sausage (1 pack)","Kielbasa (1 lb)","Bacon (1 pack)","Ground Beef (1 lb)","Ground Turkey (1 lb)","Shrimp (1 lb)","Tilapia (1 lb)"];
 var VEG_POOL=["Broccoli (1 head)","Brussels Sprouts (1 lb)","Asparagus (1 bunch)","Green Beans (1 lb)","Bell Peppers (3)","Jalapeno (2)","Cabbage (1 head)","Bok Choy (2)","Spinach (1 bag)","Mixed Greens (1 bag)","Carrots (1 lb bag)","Beets (2)","Radish (1 bunch)","Sweet Potatoes (2)","Cucumber (2)","English Cucumber (1)","Avocado (3)","Yellow Onion (2)","Red Onion (1)","Green Onions (1 bunch)","Corn on the Cob (4)","Okra (1 bag)","Peas (1 bag)","Cauliflower (1 head)","Salad Kit (1 bag)","Romaine Lettuce (1 head)","Tomatoes (4)","Zucchini (2)","Mushrooms (8 oz)"];
 var STARCH_POOL=["Russet Potatoes (5 lb bag)","Yukon Gold Potatoes (3 lb)","Sweet Potatoes (3)","Tortillas flour (1 pack)","Tortillas corn (1 pack)","Bread or Rolls (1 loaf)","Pasta assorted (1 lb)","White Rice (2 lb bag)","Brown Rice (2 lb bag)"];
 var FRUIT_POOL=["Apples (6)","Oranges (6)","Bananas (1 bunch)","Strawberries (1 lb)","Blueberries (1 pint)","Raspberries (6 oz)","Blackberries (6 oz)","Grapes (1 bag)","Mangos (2)","Pineapple (1)","Clementines (1 bag)","Pears (4)","Peaches (4)"];
@@ -253,6 +253,27 @@ var expandedRecipe=null;
 
 if(recipes.length>=2&&selMeals.length===0){var sh=shuf(recipes.map(function(_,i){return i}));selMeals=[sh[0],sh[1]];sv("p_meals",selMeals)}
 
+/* ═══ WEDNESDAY AUTO-DECAY ═══ */
+function checkWednesdayDecay(){
+  var now=new Date();
+  if(now.getDay()!==3)return; // 3 = Wednesday
+  var lastDecayDate=ld("p_last_decay","");
+  var todayStr=now.getFullYear()+"-"+(now.getMonth()+1)+"-"+now.getDate();
+  if(lastDecayDate===todayStr)return; // already decayed today
+  var changed=false;
+  inventory=inventory.map(function(item){
+    var ls=item.levels;if(ls.length<2)return item;
+    var prev=ls[ls.length-2].level;var cur=ls[ls.length-1].level;
+    var d=prev-cur; // weekly decay rate
+    if(d<=0)return item; // no decay or increasing
+    var projected=Math.max(0,Math.round(cur-d));
+    changed=true;
+    return Object.assign({},item,{levels:ls.concat([{week:wkStr(),level:projected}])});
+  });
+  if(changed){sv("p_inv",inventory);sv("p_last_decay",todayStr)}
+}
+checkWednesdayDecay();
+
 /* ═══ HELPERS ═══ */
 var UTH={4:30,3:20,2:10,1:0};
 var UL={4:"Critical",3:"High",2:"Medium",1:"Low"};
@@ -342,16 +363,19 @@ function renderRecipes(){
   main.innerHTML=h;
 }
 function recipeCard(r,hl){
+  var idx=-1;for(var i=0;i<recipes.length;i++){if(recipes[i].id===r.id){idx=i;break}}
   var h='<div class="recipe-card'+(hl?" hl":"")+'"><div class="top"><div style="cursor:pointer;flex:1" onclick="toggleRecipe('+r.id+')">';
   if(hl)h+='<div class="wk">★ This Week</div>';
   h+='<h3>'+esc(r.name)+'</h3><div class="meta">'+esc(r.category)+' · '+dollars(r.cost)+' · '+esc(r.time)+'</div></div>';
-  h+='<button class="close" onclick="deleteRecipe('+r.id+')">✕</button></div>';
+  h+='<button class="close" onclick="confirmDeleteRecipe('+r.id+',\''+esc(r.name).replace(/'/g,"\\'")+'\')">✕</button></div>';
   if(expandedRecipe===r.id){
     h+='<div class="detail"><div class="lbl">Ingredients</div><div class="pills">';
     r.ingredients.forEach(function(ing){h+='<span class="pill">'+esc(ing.name)+(ing.qty?' ('+esc(ing.qty)+')':'')+'</span>'});
     h+='</div><div class="lbl" style="margin-top:10px">Steps</div><ol>';
     r.steps.forEach(function(s){h+='<li>'+esc(s)+'</li>'});
-    h+='</ol></div>';
+    h+='</ol>';
+    if(!hl&&idx>=0)h+='<button class="btn" style="width:100%;margin-top:12px;font-size:13px;padding:10px" onclick="selectRecipeForWeek('+idx+')">★ Select for This Week</button>';
+    h+='</div>';
   }
   h+='</div>';return h;
 }
@@ -416,15 +440,133 @@ function renderGrocery(){
       h+='<span style="font-size:12px;font-weight:700;color:#e74c3c">'+ll(item)+'%</span></div>';
     });
   }
+  h+='<div style="margin-top:24px;padding-top:16px;border-top:2px solid #d4c9bc">';
+  h+='<button class="btn" style="width:100%;font-size:16px;padding:14px" onclick="confirmShopping()">✓ Confirm Shopping Complete</button>';
+  h+='<p style="color:#888;font-size:11px;text-align:center;margin-top:8px">Checked items will update your inventory to 100%</p></div>';
   main.innerHTML=h;
 }
-
 /* ═══ ACTION HANDLERS ═══ */
+function confirmShopping(){
+  var overlay=document.createElement("div");overlay.className="overlay";overlay.id="confirm-overlay";
+  overlay.onclick=function(e){if(e.target===overlay)overlay.remove()};
+  var ckCount=0;for(var k in checkedItems)if(checkedItems[k])ckCount++;
+  var h='<div class="modal" style="max-width:340px;text-align:center">';
+  h+='<div style="font-size:40px;margin-bottom:8px">🛒</div>';
+  h+='<h3 style="margin-bottom:12px">Shopping Done?</h3>';
+  h+='<p style="color:#666;font-size:14px;margin-bottom:20px">'+ckCount+' checked items will be marked as fully stocked (100%) in your inventory.</p>';
+  h+='<div style="display:flex;gap:10px"><button class="btn-sec" style="flex:1" onclick="document.getElementById(\'confirm-overlay\').remove()">Cancel</button>';
+  h+='<button class="btn" style="flex:1" onclick="doConfirmShopping()">Confirm</button></div></div>';
+  overlay.innerHTML=h;document.body.appendChild(overlay);
+}
+function doConfirmShopping(){
+  var ws=wkStr();
+  // Collect names of all checked grocery items
+  var checkedNames=[];
+  // We need to rebuild the grocery sections to map keys back to names
+  var m1=recipes[selMeals[0]],m2=recipes[selMeals[1]];
+  if(m1&&m2){
+    var allIng=m1.ingredients.concat(m2.ingredients);
+    var seen={};var buckets={meat:[],vegetable:[],starch:[],fruit:[],other:[]};
+    allIng.forEach(function(ing){if(seen[ing.name])return;seen[ing.name]=true;
+      var m=invMatch(ing.name,inventory);if(m&&ll(m)>50)return;
+      var cat=ing.groceryCat||"other";if(!buckets[cat])cat="other";
+      buckets[cat].push({text:ing.name,src:"recipe"});
+    });
+    function fillFrom2(pool,cat,target){var cur=buckets[cat]?buckets[cat].length:0;var need=Math.max(0,target-cur);
+      var avail=shuf(pool.filter(function(p){return!seen[p.split("(")[0].trim()]}));
+      for(var i=0;i<Math.min(need,avail.length);i++)buckets[cat].push({text:avail[i],src:"pool"})}
+    fillFrom2(MEAT_POOL,"meat",FILL.meat);fillFrom2(VEG_POOL,"vegetable",FILL.vegetable);
+    fillFrom2(STARCH_POOL,"starch",FILL.starch);fillFrom2(FRUIT_POOL,"fruit",FILL.fruit);
+    var sections2=[
+      {key:"meat",items:buckets.meat},{key:"veg",items:buckets.vegetable},
+      {key:"starch",items:buckets.starch},{key:"fruit",items:buckets.fruit},
+      {key:"bk",items:shuf(BREAKFAST_POOL).slice(0,FILL.breakfast).map(function(p){return{text:p}})},
+      {key:"fun",items:shuf(FUN_POOL).slice(0,FILL.fun).map(function(p){return{text:p}})},
+      {key:"other",items:buckets.other}
+    ];
+    sections2.forEach(function(sec){sec.items.forEach(function(item,ii){
+      var k=sec.key+"-"+ii;
+      if(checkedItems[k])checkedNames.push(item.text);
+    })});
+    // Also collect checked low-inventory items
+    var low=inventory.filter(isLow);
+    low.forEach(function(item,i){if(checkedItems["l-"+i])checkedNames.push(item.name)});
+  }
+  // Update inventory: match checked names to inventory items, set to 100%
+  inventory=inventory.map(function(item){
+    var matched=false;
+    for(var i=0;i<checkedNames.length;i++){
+      var cn=checkedNames[i].toLowerCase();
+      var iname=item.name.toLowerCase();
+      if(cn.indexOf(iname)>=0||iname.indexOf(cn)>=0||
+        cn.split(/[\s,()]+/).filter(function(w){return w.length>3}).some(function(w){return iname.indexOf(w)>=0})){
+        matched=true;break;
+      }
+    }
+    if(matched)return Object.assign({},item,{levels:item.levels.concat([{week:ws,level:100}])});
+    return item;
+  });
+  sv("p_inv",inventory);
+  checkedItems={};
+  var el=document.getElementById("confirm-overlay");if(el)el.remove();
+  // Show success then go to inventory
+  curPage="inventory";render();
+  // Brief toast
+  var toast=document.createElement("div");
+  toast.style.cssText="position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2d6a4f;color:#fff;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:2000;box-shadow:0 4px 12px rgba(0,0,0,.2)";
+  toast.textContent="Inventory updated!";
+  document.body.appendChild(toast);
+  setTimeout(function(){toast.remove()},2500);
+}
 function setFilter(c){invFilter=c;render()}
 function toggleSort(c){if(invSort===c)invDir=invDir==="asc"?"desc":"asc";else{invSort=c;invDir="desc"}render()}
 function toggleCheck(k){checkedItems[k]=!checkedItems[k];render()}
 function toggleRecipe(id){expandedRecipe=expandedRecipe===id?null:id;render()}
-function deleteRecipe(id){recipes=recipes.filter(function(r){return r.id!==id});sv("p_rec",recipes);render()}
+function confirmDeleteRecipe(id,name){
+  var overlay=document.createElement("div");overlay.className="overlay";overlay.id="confirm-overlay";
+  overlay.onclick=function(e){if(e.target===overlay)overlay.remove()};
+  var h='<div class="modal" style="max-width:340px;text-align:center">';
+  h+='<h3 style="margin-bottom:12px">Delete Recipe?</h3>';
+  h+='<p style="color:#666;font-size:14px;margin-bottom:20px">Are you sure you want to delete <strong>'+name+'</strong>? This cannot be undone.</p>';
+  h+='<div style="display:flex;gap:10px"><button class="btn-sec" style="flex:1" onclick="document.getElementById(\'confirm-overlay\').remove()">Cancel</button>';
+  h+='<button class="btn" style="flex:1;background:#e74c3c;box-shadow:0 2px 8px rgba(231,76,60,.25)" onclick="doDeleteRecipe('+id+')">Delete</button></div></div>';
+  overlay.innerHTML=h;document.body.appendChild(overlay);
+}
+function doDeleteRecipe(id){
+  // also fix selMeals if deleted recipe was selected
+  var oldIdx=-1;for(var i=0;i<recipes.length;i++){if(recipes[i].id===id){oldIdx=i;break}}
+  recipes=recipes.filter(function(r){return r.id!==id});
+  sv("p_rec",recipes);
+  // fix selMeals indices
+  selMeals=selMeals.map(function(s){if(s===oldIdx)return -1;if(s>oldIdx)return s-1;return s});
+  if(selMeals[0]<0||selMeals[0]>=recipes.length)selMeals[0]=0;
+  if(selMeals[1]<0||selMeals[1]>=recipes.length)selMeals[1]=Math.min(1,recipes.length-1);
+  sv("p_meals",selMeals);
+  var el=document.getElementById("confirm-overlay");if(el)el.remove();
+  render();
+}
+function selectRecipeForWeek(idx){
+  var m1=recipes[selMeals[0]];var m2=recipes[selMeals[1]];
+  // If already selected, skip
+  if(selMeals[0]===idx||selMeals[1]===idx){return}
+  var overlay=document.createElement("div");overlay.className="overlay";overlay.id="confirm-overlay";
+  overlay.onclick=function(e){if(e.target===overlay)overlay.remove()};
+  var h='<div class="modal" style="max-width:340px;text-align:center">';
+  h+='<h3 style="margin-bottom:12px">Replace Which Meal?</h3>';
+  h+='<p style="color:#666;font-size:13px;margin-bottom:16px">Choose which slot to replace with <strong>'+esc(recipes[idx].name)+'</strong></p>';
+  h+='<div style="display:grid;gap:10px">';
+  h+='<button class="btn-sec" style="padding:14px;font-size:14px" onclick="doSelectRecipe('+idx+',0)">Replace Meal 1: '+(m1?esc(m1.name):"Empty")+'</button>';
+  h+='<button class="btn-sec" style="padding:14px;font-size:14px" onclick="doSelectRecipe('+idx+',1)">Replace Meal 2: '+(m2?esc(m2.name):"Empty")+'</button>';
+  h+='<button style="background:0;border:0;color:#888;font-size:13px;cursor:pointer;padding:8px" onclick="document.getElementById(\'confirm-overlay\').remove()">Cancel</button>';
+  h+='</div></div>';
+  overlay.innerHTML=h;document.body.appendChild(overlay);
+}
+function doSelectRecipe(idx,slot){
+  selMeals[slot]=idx;
+  sv("p_meals",selMeals);checkedItems={};
+  var el=document.getElementById("confirm-overlay");if(el)el.remove();
+  render();
+}
 function updateCheckIn(id,val){checkInUpdates[id]=val}
 function resetCheckin(){checkInDone=false;checkInUpdates={};render()}
 function submitCheckin(){
