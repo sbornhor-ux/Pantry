@@ -19,6 +19,8 @@ h1,h2,h3{font-family:'DM Serif Display',Georgia,serif;color:#1a1a2e}
 header{display:flex;justify-content:space-between;align-items:center;padding:20px 0 12px;border-bottom:1px solid #d4c9bc}
 header h1{font-size:26px;letter-spacing:-.5px}
 header p{font-size:12px;color:#888;margin-top:2px}
+.sync-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:6px;vertical-align:middle}
+.sync-dot.on{background:#27ae60}.sync-dot.off{background:#e74c3c}.sync-dot.load{background:#f39c12}
 main{padding:20px 0;min-height:60vh}
 nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid #e0dbd4;padding-bottom:env(safe-area-inset-bottom);z-index:100}
 nav button{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 0 6px;border:none;background:0;cursor:pointer;color:#999;font-family:'DM Sans',sans-serif;font-weight:500;font-size:10px}
@@ -34,6 +36,7 @@ nav button span.lbl{margin-top:2px}
 .btn{padding:12px 24px;background:#2d6a4f;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 2px 8px rgba(45,106,79,.25)}
 .btn-sm{padding:10px 16px;font-size:14px}
 .btn-sec{padding:8px 14px;background:#fff;color:#2d6a4f;border:1px solid rgba(45,106,79,.27);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.btn-icon{background:none;border:1px solid #ddd;border-radius:6px;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0;color:#888}
 .chips{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
 .chip{padding:5px 12px;border:1px solid #ccc;border-radius:16px;background:#fff;cursor:pointer;font-size:11px;font-weight:500;font-family:'DM Sans',sans-serif;color:#666;white-space:nowrap}
 .chip.on{background:#2d6a4f;color:#fff;border-color:#2d6a4f}
@@ -46,13 +49,13 @@ td{padding:8px 12px;border-bottom:1px solid #f5f5f3}
 .urg{padding:2px 7px;border-radius:5px;font-size:11px;font-weight:600}
 .bar-bg{flex:1;height:6px;background:#eee;border-radius:3px;overflow:hidden;max-width:80px}
 .bar-fill{height:100%;border-radius:3px;transition:width .3s}
-.section-hdr{font-family:'DM Serif Display',Georgia,serif;font-size:16px;color:#1a1a2e;padding:8px 0 6px;border-bottom:1px solid #e0dbd4;margin-bottom:6px}
+.section-hdr{font-family:'DM Serif Display',Georgia,serif;font-size:16px;color:#1a1a2e;padding:8px 0 6px;border-bottom:1px solid #e0dbd4;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
 .section-hdr.red{color:#e74c3c}
-.list-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+.list-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;font-size:14px}
 .list-item.done{opacity:.45;text-decoration:line-through}
 .list-item.recipe-bg{background:#f0faf5}
 .list-item.restock-bg{background:#fef2f2}
-.cb{width:22px;height:22px;border-radius:6px;border:2px solid #ccc;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cb{width:22px;height:22px;border-radius:6px;border:2px solid #ccc;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer}
 .cb.on{background:#2d6a4f;border-color:#2d6a4f;color:#fff;font-size:11px}
 .cb.red.on{background:#e74c3c;border-color:#e74c3c}
 .badge{font-size:9px;font-weight:700;text-transform:uppercase;color:#2d6a4f}
@@ -94,16 +97,18 @@ td{padding:8px 12px;border-bottom:1px solid #f5f5f3}
 .cat-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .cat-row span{flex:1;font-size:13px}
 .cat-row select{width:110px;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif}
-.hidden{display:none}
 .center{text-align:center;padding:50px 0}
 .center .big{font-size:48px;margin-bottom:12px}
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px}
+.add-row{display:flex;gap:8px;padding:6px 12px}
+.add-row input{flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif}
+.add-row button{padding:8px 14px;background:#2d6a4f;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <div><h1>Sam &amp; Molly's Pantry</h1><p>Inventory · Recipes · Grocery</p></div>
+    <div><h1>Sam &amp; Molly's Pantry</h1><p>Inventory · Recipes · Grocery <span id="sync-dot" class="sync-dot off"></span></p></div>
   </header>
   <main id="main"></main>
 </div>
@@ -113,540 +118,24 @@ td{padding:8px 12px;border-bottom:1px solid #f5f5f3}
   <button data-page="recipes"><span class="icon">👨‍🍳</span><span class="lbl">Recipes</span></button>
   <button data-page="grocery"><span class="icon">🛒</span><span class="lbl">List</span></button>
 </nav>
-
+<script src="./app.js"></script>
 <script>
-/* ═══ PERSISTENCE ═══ */
-function ld(k,fb){try{var d=localStorage.getItem(k);return d?JSON.parse(d):fb}catch(e){return fb}}
-function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-
-/* ═══ CURATED POOLS ═══ */
-var MEAT_POOL=["Chicken Thighs (2 lbs)","Chicken Breast (2 lbs)","Chicken Tenders (1 bag)","Rotisserie Chicken (1)","Flank Steak (2 lbs)","NY Strip Steak (1 lb)","Beef Chuck Roast (3 lbs)","Ground Pork (1 lb)","Pork Cutlets (4)","Salmon Filets (1 lb)","Italian Sausage (1 pack)","Andouille Sausage (1 pack)","Smoked Sausage (1 pack)","Kielbasa (1 lb)","Bacon (1 pack)","Ground Beef (1 lb)","Ground Turkey (1 lb)","Shrimp (1 lb)","Tilapia (1 lb)"];
-var VEG_POOL=["Broccoli (1 head)","Brussels Sprouts (1 lb)","Asparagus (1 bunch)","Green Beans (1 lb)","Bell Peppers (3)","Jalapeno (2)","Cabbage (1 head)","Bok Choy (2)","Spinach (1 bag)","Mixed Greens (1 bag)","Carrots (1 lb bag)","Beets (2)","Radish (1 bunch)","Sweet Potatoes (2)","Cucumber (2)","English Cucumber (1)","Avocado (3)","Yellow Onion (2)","Red Onion (1)","Green Onions (1 bunch)","Corn on the Cob (4)","Okra (1 bag)","Peas (1 bag)","Cauliflower (1 head)","Salad Kit (1 bag)","Romaine Lettuce (1 head)","Tomatoes (4)","Zucchini (2)","Mushrooms (8 oz)"];
-var STARCH_POOL=["Russet Potatoes (5 lb bag)","Yukon Gold Potatoes (3 lb)","Sweet Potatoes (3)","Tortillas flour (1 pack)","Tortillas corn (1 pack)","Bread or Rolls (1 loaf)","Pasta assorted (1 lb)","White Rice (2 lb bag)","Brown Rice (2 lb bag)"];
-var FRUIT_POOL=["Apples (6)","Oranges (6)","Bananas (1 bunch)","Strawberries (1 lb)","Blueberries (1 pint)","Raspberries (6 oz)","Blackberries (6 oz)","Grapes (1 bag)","Mangos (2)","Pineapple (1)","Clementines (1 bag)","Pears (4)","Peaches (4)"];
-var BREAKFAST_POOL=["Eggs (1 dozen)","Greek Yogurt large tub","Greek Yogurt cups (10-pack)","Cereal (1 box)","Oatmeal (1 canister)","Bagels (6 pack)","English Muffins (6 pack)","Pancake/Waffle Mix","Breakfast Sausage (1 pack)","Turkey Bacon (1 pack)","Granola (1 bag)","Cream Cheese (1 block)","Butter (1 stick)","Orange Juice (half gal)","Coffee Creamer"];
-var FUN_POOL=["Protein Brownies (1 box)","Ice Cream (1 pint)","Ice Cream 2nd pint","Chips or Pretzels (1 bag)","Cookies or Cookie Dough","Popcorn microwave (1 box)","Candy or Chocolate Bar (2)","Protein Cookies (1 box)","Cheese and Crackers","Trail Mix or Nuts (1 bag)","Frozen Fruit Bars (1 box)","Brownie Mix (1 box)","Gummy Snacks (1 bag)"];
-var FILL={meat:3,vegetable:4,starch:1,fruit:2,breakfast:5,fun:3};
-
-/* ═══ DEFAULT INVENTORY ═══ */
-var DEF_INV=[
-{id:1,name:"Flour",category:"Food Staples",urgency:2,amount:"5 lb",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:50}]},
-{id:2,name:"Sugar",category:"Food Staples",urgency:2,amount:"5 lb",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:50}]},
-{id:3,name:"Brown Sugar",category:"Food Staples",urgency:2,amount:"5 lb",levels:[{week:"2/15/26",level:0},{week:"2/22/26",level:0}]},
-{id:4,name:"Rice",category:"Food Staples",urgency:2,amount:"5 lb",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:5,name:"Pasta",category:"Food Staples",urgency:2,amount:"5 lb",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:6,name:"Quinoa",category:"Food Staples",urgency:2,amount:"5 lb",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:7,name:"Popcorn",category:"Food Staples",urgency:2,amount:"1 lb",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:8,name:"Corn (Can)",category:"Food Staples",urgency:2,amount:"4 cans",levels:[{week:"2/15/26",level:80},{week:"2/22/26",level:80}]},
-{id:9,name:"Black Beans (Can)",category:"Food Staples",urgency:2,amount:"4 cans",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:10,name:"Kidney Beans (Can)",category:"Food Staples",urgency:2,amount:"4 cans",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:11,name:"Black Eyed Peas (Can)",category:"Food Staples",urgency:2,amount:"4 cans",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:12,name:"Corn (Frozen)",category:"Food Staples",urgency:2,amount:"2 bags",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:13,name:"Cauliflower Rice (Frozen)",category:"Food Staples",urgency:3,amount:"3 bags",levels:[{week:"2/15/26",level:25},{week:"2/22/26",level:20}]},
-{id:14,name:"Green Beans (Frozen)",category:"Food Staples",urgency:2,amount:"2 bags",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:15,name:"Chicken Tenders (Frozen)",category:"Food Staples",urgency:3,amount:"1 bag",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:16,name:"Chicken Thighs (Frozen)",category:"Food Staples",urgency:2,amount:"1 bag",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:17,name:"Adobo Chicken (Frozen)",category:"Food Staples",urgency:2,amount:"1 bag",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:18,name:"Chicken Broth (Frozen)",category:"Food Staples",urgency:3,amount:"6 cups",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:19,name:"Salmon (Frozen)",category:"Food Staples",urgency:2,amount:"1 bag",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:20,name:"Fruit (Frozen)",category:"Food Staples",urgency:3,amount:"3 bags",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:21,name:"Mini Chocolate Chips",category:"Food Staples",urgency:2,amount:"2 bags",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:22,name:"Hash Brown Patties",category:"Food Staples",urgency:2,amount:"2 packs",levels:[{week:"2/15/26",level:0},{week:"2/22/26",level:0}]},
-{id:23,name:"Bratwurst (Frozen)",category:"Food Staples",urgency:2,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:24,name:"Bacon (Frozen)",category:"Food Staples",urgency:2,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:25,name:"Soy Sauce",category:"Food Staples",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:26,name:"Smoked Soy Sauce",category:"Food Staples",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:27,name:"Olive Oil",category:"Food Staples",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:28,name:"Neutral Oil",category:"Food Staples",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:29,name:"Sesame Oil",category:"Food Staples",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:30,name:"Buffalo Hot Sauce",category:"Food Staples",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:31,name:"Cholula",category:"Food Staples",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:32,name:"Louisiana Hot",category:"Food Staples",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:33,name:"Sriracha",category:"Food Staples",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:34,name:"Peri Peri",category:"Food Staples",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:35,name:"Honey",category:"Food Staples",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:36,name:"Maple Syrup",category:"Food Staples",urgency:1,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:37,name:"Fake Syrup",category:"Food Staples",urgency:1,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:38,name:"White Vinegar",category:"Food Staples",urgency:1,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:39,name:"Apple Cider Vinegar",category:"Food Staples",urgency:1,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:40,name:"A1 Sauce",category:"Food Staples",urgency:3,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:41,name:"Peanut Butter",category:"Food Staples",urgency:1,amount:"1 tub",levels:[{week:"2/15/26",level:100},{week:"2/22/26",level:98}]},
-{id:42,name:"Jam",category:"Food Staples",urgency:1,amount:"1 tub",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:43,name:"Chocolate Sauce",category:"Food Staples",urgency:1,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:44,name:"Protein Bars",category:"Food Staples",urgency:2,amount:"1 pack",levels:[{week:"2/15/26",level:100},{week:"2/22/26",level:95}]},
-{id:45,name:"Protein Shakes",category:"Food Staples",urgency:2,amount:"1 pack",levels:[{week:"2/15/26",level:100},{week:"2/22/26",level:95}]},
-{id:46,name:"Ketchup",category:"Fridge Sauces",urgency:1,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:47,name:"Yellow Mustard",category:"Fridge Sauces",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:48,name:"Brown Mustard",category:"Fridge Sauces",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:49,name:"Dijon Mustard",category:"Fridge Sauces",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:50,name:"Mayo",category:"Fridge Sauces",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:51,name:"Yum Yum Sauce",category:"Fridge Sauces",urgency:2,amount:"1 tub",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:52,name:"Ranch",category:"Fridge Sauces",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:53,name:"Sesame Dressing",category:"Fridge Sauces",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:54,name:"Italian Vinaigrette",category:"Fridge Sauces",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:55,name:"Garlic Minced",category:"Fridge Sauces",urgency:2,amount:"1 tub",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:56,name:"Salt",category:"Food Staples",urgency:2,amount:"1 tub",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:57,name:"Pepper",category:"Food Staples",urgency:2,amount:"1 tub",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:58,name:"Paper Towels",category:"Kitchen Items",urgency:3,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:59,name:"Sponge",category:"Kitchen Items",urgency:2,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:60,name:"Scrubber",category:"Kitchen Items",urgency:2,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:61,name:"Dish Soap",category:"Kitchen Items",urgency:2,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:62,name:"Power Scrub",category:"Kitchen Items",urgency:2,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:63,name:"Paper Bowl",category:"Kitchen Items",urgency:1,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:64,name:"Paper Plate",category:"Kitchen Items",urgency:1,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:65,name:"Plastic Cutlery",category:"Kitchen Items",urgency:1,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:66,name:"Dishwasher Tabs",category:"Kitchen Items",urgency:4,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:67,name:"Laundry Pods",category:"Laundry Items",urgency:4,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:68,name:"Dryer Sheets",category:"Laundry Items",urgency:2,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:69,name:"All Purpose Cleaner",category:"Cleaning Supplies",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:70,name:"Glass Cleaner",category:"Cleaning Supplies",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:71,name:"Degreaser",category:"Cleaning Supplies",urgency:2,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:72,name:"Floor Cleaner",category:"Cleaning Supplies",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:73,name:"Bleach",category:"Cleaning Supplies",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:74,name:"Toilet Bowl Cleaner",category:"Cleaning Supplies",urgency:2,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:75,name:"Swiffer Pads",category:"Cleaning Supplies",urgency:2,amount:"1 pack",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:76,name:"Tooth Paste",category:"Bathroom",urgency:3,amount:"1 pack",levels:[{week:"2/15/26",level:10},{week:"2/22/26",level:5}]},
-{id:77,name:"Toilet Paper",category:"Bathroom",urgency:4,amount:"1 pack",levels:[{week:"2/15/26",level:25},{week:"2/22/26",level:20}]},
-{id:78,name:"Face Wash",category:"Bathroom",urgency:3,amount:"1 bottle",levels:[{week:"2/15/26",level:50},{week:"2/22/26",level:48}]},
-{id:79,name:"Shampoo",category:"Bathroom",urgency:3,amount:"1 bottle",levels:[{week:"2/15/26",level:100},{week:"2/22/26",level:99}]},
-{id:80,name:"Conditioner",category:"Bathroom",urgency:3,amount:"1 bottle",levels:[{week:"2/15/26",level:100},{week:"2/22/26",level:99}]}
-];
-
-/* ═══ DEFAULT RECIPES ═══ */
-var DEF_REC=[
-{id:1,name:"Italian Beef",category:"Handhelds",cost:5,time:"3 Days",ingredients:[{name:"Beef Chuck Roast",qty:"3 lb",groceryCat:"meat"},{name:"Beef Broth",qty:"2 cups",groceryCat:"other"},{name:"Giardiniera",qty:"1/4 cup",groceryCat:"other"},{name:"Kaiser Rolls",qty:"6",groceryCat:"other"},{name:"Provolone Cheese",qty:"",groceryCat:"other"}],steps:["Sear beef.","Slow cook 8-10 hrs.","Shred and assemble."]},
-{id:2,name:"Adobo Chicken Tacos",category:"Handhelds",cost:4,time:"1 day",ingredients:[{name:"Chicken Thighs",qty:"6",groceryCat:"meat"},{name:"Chipotle Peppers",qty:"1 can",groceryCat:"other"},{name:"Yellow Onion",qty:"1",groceryCat:"vegetable"},{name:"Tortillas",qty:"1 pack",groceryCat:"other"},{name:"Avocado",qty:"1",groceryCat:"vegetable"},{name:"Mangos",qty:"2",groceryCat:"fruit"},{name:"Red Onion",qty:"1/2",groceryCat:"vegetable"},{name:"Jalapeno",qty:"1",groceryCat:"vegetable"}],steps:["Slow cook chicken 3 hrs.","Shred, griddle tortillas.","Top with mango salsa."]},
-{id:3,name:"Elote Tacos",category:"Handhelds",cost:1,time:"30 min",ingredients:[{name:"Adobo Chicken",qty:"pre-made",groceryCat:"meat"},{name:"Tortillas",qty:"1 pack",groceryCat:"other"},{name:"Corn",qty:"1 can",groceryCat:"vegetable"},{name:"Parmesan",qty:"1/2 cup",groceryCat:"other"}],steps:["Reheat chicken.","Char corn with mayo and parm.","Assemble."]},
-{id:4,name:"Fajita Tacos",category:"Handhelds",cost:2,time:"3 hours",ingredients:[{name:"Bell Peppers",qty:"3",groceryCat:"vegetable"},{name:"Yellow Onion",qty:"1",groceryCat:"vegetable"},{name:"Tortillas",qty:"1 pack",groceryCat:"other"},{name:"Avocado",qty:"1",groceryCat:"vegetable"}],steps:["Saute peppers and onion.","Toast tortillas.","Assemble."]},
-{id:5,name:"Detox Salad",category:"Healthy",cost:3,time:"6 hours",ingredients:[{name:"Carrots",qty:"3",groceryCat:"vegetable"},{name:"Brussels Sprouts",qty:"12",groceryCat:"vegetable"},{name:"Broccoli",qty:"1/2 head",groceryCat:"vegetable"},{name:"Cauliflower",qty:"1/2 head",groceryCat:"vegetable"},{name:"Avocado",qty:"1",groceryCat:"vegetable"},{name:"Bacon",qty:"4 strips",groceryCat:"meat"},{name:"Dried Cranberries",qty:"handful",groceryCat:"other"}],steps:["Mix vegetables.","Make dressing.","Top with bacon."]},
-{id:6,name:"Steak Salad",category:"Healthy",cost:4,time:"1 day",ingredients:[{name:"NY Strip Steak",qty:"1",groceryCat:"meat"},{name:"Mixed Greens",qty:"1 bag",groceryCat:"vegetable"},{name:"Radish",qty:"3",groceryCat:"vegetable"},{name:"Corn on the Cob",qty:"2",groceryCat:"vegetable"},{name:"Beets",qty:"2",groceryCat:"vegetable"},{name:"Goat Cheese",qty:"",groceryCat:"other"}],steps:["Cook steak, slice.","Mix salad.","Dress."]},
-{id:7,name:"Dense Bean Caesar",category:"Healthy",cost:1,time:"30 min",ingredients:[{name:"Kidney Beans",qty:"1 can",groceryCat:"other"},{name:"Chickpeas",qty:"1 can",groceryCat:"other"},{name:"Cabbage",qty:"1 head",groceryCat:"vegetable"},{name:"Cucumber",qty:"1",groceryCat:"vegetable"},{name:"Red Onion",qty:"1/2",groceryCat:"vegetable"},{name:"Caesar Dressing",qty:"",groceryCat:"other"}],steps:["Mix all.","Dress."]},
-{id:8,name:"Sushi Salmon Bowl",category:"Bowls",cost:4,time:"1 day",ingredients:[{name:"Salmon Filets",qty:"2",groceryCat:"meat"},{name:"English Cucumber",qty:"1",groceryCat:"vegetable"},{name:"Avocado",qty:"1",groceryCat:"vegetable"},{name:"Pickled Ginger",qty:"",groceryCat:"other"},{name:"Kewpie Mayo",qty:"1/2 cup",groceryCat:"other"},{name:"Furikake",qty:"1 tbsp",groceryCat:"other"}],steps:["Marinate salmon.","Cook rice.","Air fry salmon.","Assemble."]},
-{id:9,name:"Pesto Pasta Bowl",category:"Bowls",cost:5,time:"3 Days",ingredients:[{name:"Chicken Breast",qty:"2",groceryCat:"meat"},{name:"Peas",qty:"1 cup",groceryCat:"vegetable"},{name:"Shallot",qty:"1",groceryCat:"vegetable"},{name:"Fresh Spinach",qty:"2 cups",groceryCat:"vegetable"},{name:"Pine Nuts",qty:"1/2 cup",groceryCat:"other"},{name:"Fresh Basil",qty:"1 pkg",groceryCat:"other"},{name:"Pesto Puck",qty:"1",groceryCat:"other"}],steps:["Boil pasta.","Sear chicken.","Saute peas.","Mix with pesto."]},
-{id:10,name:"Cajun Fried Rice",category:"Bowls",cost:3,time:"6 hours",ingredients:[{name:"Bacon or Andouille",qty:"6 strips",groceryCat:"meat"},{name:"Chicken Thighs",qty:"3",groceryCat:"meat"},{name:"Okra",qty:"20 cubes",groceryCat:"vegetable"},{name:"Onion",qty:"1/2",groceryCat:"vegetable"},{name:"Spring Onions",qty:"bunch",groceryCat:"vegetable"},{name:"Eggs",qty:"3",groceryCat:"other"}],steps:["Cook rice and meat.","Saute veg.","Scramble eggs.","Combine."]},
-{id:11,name:"Korean BBQ Bowl",category:"Bowls",cost:5,time:"3 Days",ingredients:[{name:"Flank Steak",qty:"3 lbs",groceryCat:"meat"},{name:"Broccoli",qty:"3 heads",groceryCat:"vegetable"},{name:"Green Onions",qty:"5 stalks",groceryCat:"vegetable"},{name:"Cabbage",qty:"1 head",groceryCat:"vegetable"},{name:"Brown Sugar",qty:"1 cup",groceryCat:"other"},{name:"Ginger",qty:"1 cube",groceryCat:"other"}],steps:["Mix sauce.","Slow cook steak.","Steam broccoli.","Pickle cabbage.","Plate."]},
-{id:12,name:"Smoked Sausage Bowl",category:"Bowls",cost:2,time:"3 hours",ingredients:[{name:"Smoked Sausage",qty:"1",groceryCat:"meat"},{name:"Sweet Potatoes",qty:"2",groceryCat:"vegetable"},{name:"Broccoli",qty:"1 head",groceryCat:"vegetable"},{name:"Asparagus",qty:"1 bunch",groceryCat:"vegetable"}],steps:["Oven 400F.","Roast potatoes 15 min.","Add sausage 15 min.","Add asparagus 10 min."]},
-{id:13,name:"Sausage and Pepper Bowl",category:"Bowls",cost:3,time:"6 hours",ingredients:[{name:"Italian Sausage",qty:"1 pack",groceryCat:"meat"},{name:"Russet Potatoes",qty:"2",groceryCat:"starch"},{name:"Bell Peppers",qty:"3",groceryCat:"vegetable"},{name:"Yellow Onion",qty:"1",groceryCat:"vegetable"}],steps:["Bake potatoes.","Brown sausage.","Saute peppers.","Assemble."]},
-{id:14,name:"Chipotle Taco Bowl",category:"Bowls",cost:3,time:"6 hours",ingredients:[{name:"Chicken Thighs",qty:"6",groceryCat:"meat"},{name:"Avocado",qty:"1",groceryCat:"vegetable"},{name:"Bell Peppers",qty:"3",groceryCat:"vegetable"},{name:"Yellow Onion",qty:"1",groceryCat:"vegetable"},{name:"Mangos",qty:"2",groceryCat:"fruit"},{name:"Red Onion",qty:"1/2",groceryCat:"vegetable"},{name:"Jalapeno",qty:"1",groceryCat:"vegetable"}],steps:["Slow cook chicken.","Cook rice.","Make salsa.","Assemble."]},
-{id:15,name:"Baked Ziti",category:"Bowls",cost:2,time:"3 hours",ingredients:[{name:"Ground Pork",qty:"1 lb",groceryCat:"meat"},{name:"Hot Italian Sausage",qty:"1 lb",groceryCat:"meat"},{name:"Ziti",qty:"1 lb",groceryCat:"other"},{name:"Mozzarella",qty:"1/2 lb",groceryCat:"other"},{name:"Tomato Sauce",qty:"1 container",groceryCat:"other"},{name:"Carrots",qty:"1 cup",groceryCat:"vegetable"},{name:"Spinach",qty:"1.5 cups",groceryCat:"vegetable"}],steps:["Blitz sauce.","Fry meat.","Boil ziti.","Bake 20 min."]},
-{id:16,name:"Black and Yellow Rice",category:"Bowls",cost:2,time:"3 hours",ingredients:[{name:"Sausage",qty:"1/2 lb",groceryCat:"meat"},{name:"Black Beans",qty:"1 can",groceryCat:"other"},{name:"Carrots",qty:"1 cup",groceryCat:"vegetable"}],steps:["Cook rice with turmeric.","Fry sausage.","Mix."]},
-{id:17,name:"Quick Pesto Pasta",category:"Bowls",cost:2,time:"3 hours",ingredients:[{name:"Chicken Tenders or Bacon",qty:"",groceryCat:"meat"},{name:"Spinach",qty:"1 bag",groceryCat:"vegetable"},{name:"Pine Nuts",qty:"1/2 cup",groceryCat:"other"},{name:"Fresh Basil",qty:"1 pkg",groceryCat:"other"}],steps:["Blanch veggies.","Boil pasta.","Heat protein.","Mix with pesto."]},
-{id:18,name:"Roast Salmon",category:"Healthy",cost:1,time:"30 min",ingredients:[{name:"Salmon Filets",qty:"2",groceryCat:"meat"},{name:"Green Beans",qty:"2 cups",groceryCat:"vegetable"},{name:"Lemon",qty:"1",groceryCat:"other"}],steps:["Foil in cast iron.","Layer beans then salmon.","Bake 400F 35 min."]},
-{id:19,name:"Swamp Potatoes",category:"Bowls",cost:3,time:"6 hours",ingredients:[{name:"Kielbasa",qty:"1 lb",groceryCat:"meat"},{name:"Waxy Potatoes",qty:"1 lb",groceryCat:"starch"},{name:"Cabbage",qty:"most of head",groceryCat:"vegetable"},{name:"Green Beans",qty:"1 lb",groceryCat:"vegetable"},{name:"Butter",qty:"1 stick",groceryCat:"other"},{name:"Beef Broth",qty:"3/4 cup",groceryCat:"other"}],steps:["Slow cooker low 6-7 hrs.","Add green beans last hour."]},
-{id:20,name:"Chicken Piccata",category:"Off Menu",cost:4,time:"1 day",ingredients:[{name:"Chicken Breast",qty:"2",groceryCat:"meat"},{name:"Butter",qty:"3 tbsp",groceryCat:"other"},{name:"Lemon",qty:"1",groceryCat:"other"},{name:"Capers",qty:"2 tbsp",groceryCat:"other"}],steps:["Dredge and sear chicken.","Make lemon-caper sauce."]},
-{id:21,name:"Pork Schnitzel",category:"Off Menu",cost:5,time:"3 Days",ingredients:[{name:"Pork Cutlets",qty:"4",groceryCat:"meat"},{name:"Breadcrumbs",qty:"2 cups",groceryCat:"other"},{name:"Eggs",qty:"2",groceryCat:"other"},{name:"Lemon",qty:"1",groceryCat:"other"}],steps:["Pound thin.","Bread and fry."]},
-{id:22,name:"Wonton Soup",category:"Off Menu",cost:1,time:"30 min",ingredients:[{name:"Ground Pork",qty:"1/2 lb",groceryCat:"meat"},{name:"Wonton Wrappers",qty:"1 pack",groceryCat:"other"},{name:"Green Onions",qty:"bunch",groceryCat:"vegetable"},{name:"Bok Choy",qty:"2",groceryCat:"vegetable"}],steps:["Mix filling.","Fill wontons.","Boil 4-5 min.","Add bok choy."]}
-];
-
-/* ═══ STATE ═══ */
-var inventory=ld("p_inv",DEF_INV);
-var recipes=ld("p_rec",DEF_REC);
-var selMeals=ld("p_meals",[]);
-var curPage="inventory";
-var invFilter="All";
-var invSort="urgency";
-var invDir="desc";
-var checkedItems={};
-var checkInUpdates={};
-var checkInDone=false;
-var expandedRecipe=null;
-
-if(recipes.length>=2&&selMeals.length===0){var sh=shuf(recipes.map(function(_,i){return i}));selMeals=[sh[0],sh[1]];sv("p_meals",selMeals)}
-
-/* ═══ WEDNESDAY AUTO-DECAY ═══ */
-function checkWednesdayDecay(){
-  var now=new Date();
-  if(now.getDay()!==3)return; // 3 = Wednesday
-  var lastDecayDate=ld("p_last_decay","");
-  var todayStr=now.getFullYear()+"-"+(now.getMonth()+1)+"-"+now.getDate();
-  if(lastDecayDate===todayStr)return; // already decayed today
-  var changed=false;
-  inventory=inventory.map(function(item){
-    var ls=item.levels;if(ls.length<2)return item;
-    var prev=ls[ls.length-2].level;var cur=ls[ls.length-1].level;
-    var d=prev-cur; // weekly decay rate
-    if(d<=0)return item; // no decay or increasing
-    var projected=Math.max(0,Math.round(cur-d));
-    changed=true;
-    return Object.assign({},item,{levels:ls.concat([{week:wkStr(),level:projected}])});
-  });
-  if(changed){sv("p_inv",inventory);sv("p_last_decay",todayStr)}
-}
-checkWednesdayDecay();
-
-/* ═══ HELPERS ═══ */
-var UTH={4:30,3:20,2:10,1:0};
-var UL={4:"Critical",3:"High",2:"Medium",1:"Low"};
-var UC={4:"#e74c3c",3:"#f39c12",2:"#3498db",1:"#95a5a6"};
-function ll(item){return item.levels[item.levels.length-1].level}
-function decay(item){var ls=item.levels;if(ls.length<2)return 0;return ls[ls.length-2].level-ls[ls.length-1].level}
-function proj(item){return Math.max(0,ll(item)-decay(item))}
-function isLow(item){return ll(item)<=UTH[item.urgency]}
-function lClr(l){return l<=10?"#e74c3c":l<=25?"#f39c12":l<=50?"#e67e22":"#27ae60"}
-function shuf(a){var b=a.slice();for(var i=b.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=b[i];b[i]=b[j];b[j]=t}return b}
-function wkStr(){var d=new Date();return(d.getMonth()+1)+"/"+d.getDate()+"/"+String(d.getFullYear()).slice(-2)}
-function invMatch(n,inv){var lo=n.toLowerCase();for(var i=0;i<inv.length;i++){var il=inv[i].name.toLowerCase();if(lo.indexOf(il)>=0||il.indexOf(lo)>=0)return inv[i];var words=lo.split(/[\s,()]+/);for(var w=0;w<words.length;w++){if(words[w].length>3&&il.indexOf(words[w])>=0)return inv[i]}}return null}
-function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
-function $(sel){return document.querySelector(sel)}
-function $$(sel){return document.querySelectorAll(sel)}
-function dollars(n){var s="";for(var i=0;i<n;i++)s+="$";return s}
-
-/* ═══ RENDER ENGINE ═══ */
-var main=document.getElementById("main");
-
-function render(){
-  if(curPage==="inventory")renderInventory();
-  else if(curPage==="checkin")renderCheckin();
-  else if(curPage==="recipes")renderRecipes();
-  else if(curPage==="grocery")renderGrocery();
-  $$("nav button").forEach(function(b){b.classList.toggle("active",b.dataset.page===curPage)});
-}
-
-/* ═══ INVENTORY ═══ */
-function renderInventory(){
-  var cats={};inventory.forEach(function(i){cats[i.category]=true});var catList=Object.keys(cats);
-  var items=invFilter==="All"?inventory.slice():inventory.filter(function(i){return i.category===invFilter});
-  items.sort(function(a,b){var vA,vB;if(invSort==="urgency"){vA=a.urgency;vB=b.urgency}else if(invSort==="level"){vA=ll(a);vB=ll(b)}else{vA=a.name.toLowerCase();vB=b.name.toLowerCase()}if(invDir==="asc")return vA<vB?-1:vA>vB?1:0;return vA>vB?-1:vA<vB?1:0});
-  var lowCount=inventory.filter(isLow).length;
-  var avg=Math.round(inventory.reduce(function(s,i){return s+ll(i)},0)/inventory.length);
-  var h='<div class="topbar"><div class="stats" style="flex:1">';
-  h+='<div class="stat"><div class="stat-label">Items</div><div class="stat-val">'+inventory.length+'</div></div>';
-  h+='<div class="stat red"><div class="stat-label">Low</div><div class="stat-val">'+lowCount+'</div></div>';
-  h+='<div class="stat"><div class="stat-label">Avg</div><div class="stat-val">'+avg+'%</div></div>';
-  h+='</div><button class="btn btn-sm" onclick="showAddItem()">+ Add</button></div>';
-  h+='<div class="chips"><button class="chip'+(invFilter==="All"?" on":"")+'" onclick="setFilter(\'All\')">All</button>';
-  catList.forEach(function(c){h+='<button class="chip'+(invFilter===c?" on":"")+'" onclick="setFilter(\''+esc(c)+'\')">'+esc(c)+'</button>'});
-  h+='</div><div class="tbl-wrap"><table><thead><tr>';
-  h+='<th onclick="toggleSort(\'name\')">Item '+(invSort==="name"?(invDir==="asc"?"&uarr;":"&darr;"):"")+'</th>';
-  h+='<th onclick="toggleSort(\'urgency\')">Urg '+(invSort==="urgency"?(invDir==="asc"?"&uarr;":"&darr;"):"")+'</th>';
-  h+='<th onclick="toggleSort(\'level\')">Level '+(invSort==="level"?(invDir==="asc"?"&uarr;":"&darr;"):"")+'</th>';
-  h+='<th>Amt</th></tr></thead><tbody>';
-  items.forEach(function(item){
-    var cl=ll(item);var low=isLow(item);
-    h+='<tr'+(low?' class="low-bg"':'')+'>';
-    h+='<td><span style="font-weight:600;color:#1a1a2e;font-size:13px">'+esc(item.name)+'</span>'+(low?'<span class="low-badge">LOW</span>':'')+'</td>';
-    h+='<td><span class="urg" style="background:'+UC[item.urgency]+'22;color:'+UC[item.urgency]+'">'+UL[item.urgency]+'</span></td>';
-    h+='<td><div style="display:flex;align-items:center;gap:6px"><div class="bar-bg"><div class="bar-fill" style="width:'+cl+'%;background:'+lClr(cl)+'"></div></div><span style="font-size:12px;font-weight:600;color:'+lClr(cl)+';min-width:30px">'+cl+'%</span></div></td>';
-    h+='<td style="font-size:12px;color:#888">'+esc(item.amount)+'</td></tr>';
-  });
-  h+='</tbody></table></div>';
-  main.innerHTML=h;
-}
-
-/* ═══ CHECK-IN ═══ */
-function renderCheckin(){
-  if(checkInDone){main.innerHTML='<div class="center"><div class="big">✓</div><h2>Check-in Complete!</h2><p style="color:#666;font-size:14px;margin-top:8px">Non-updated items projected via decay.</p><button class="btn" style="margin-top:16px" onclick="resetCheckin()">New Check-in</button></div>';return}
-  var items=inventory.slice().sort(function(a,b){return((5-a.urgency)*100+ll(a))-((5-b.urgency)*100+ll(b))}).slice(0,12);
-  var h='<h2 style="margin-bottom:4px">Weekly Check-in</h2><p style="color:#666;font-size:13px;margin-bottom:16px">12 priority items. Leave blank to auto-project.</p><div>';
-  items.forEach(function(item){
-    var cl=ll(item);var val=checkInUpdates[item.id]!=null?checkInUpdates[item.id]:"";
-    h+='<div class="update-row"><div class="info"><div class="nm">'+esc(item.name)+'</div><div class="amt">'+esc(item.amount)+'</div></div>';
-    h+='<div class="right"><div style="font-size:16px;font-weight:700;color:'+lClr(cl)+';min-width:36px;text-align:right">'+cl+'%</div>';
-    h+='<span style="color:#ccc">&#8594;</span>';
-    h+='<input type="number" min="0" max="100" step="5" placeholder="'+Math.round(proj(item))+'" value="'+val+'" onchange="updateCheckIn('+item.id+',this.value)"></div></div>';
-  });
-  h+='</div><button class="btn" style="margin-top:20px;width:100%" onclick="submitCheckin()">Submit Check-in ✓</button>';
-  main.innerHTML=h;
-}
-
-/* ═══ RECIPES ═══ */
-function renderRecipes(){
-  var rec=selMeals.map(function(i){return recipes[i]}).filter(Boolean);
-  var h='<div class="topbar"><div><h2 style="margin:0">Cookbook</h2><p style="color:#888;font-size:12px;margin-top:2px">'+recipes.length+' recipes · tap to expand</p></div><button class="btn btn-sm" onclick="showAddRecipe()">+ Add</button></div>';
-  if(rec.length>0){
-    h+='<div style="font-size:12px;font-weight:700;color:#2d6a4f;margin-bottom:8px;text-transform:uppercase">This Week</div>';
-    rec.forEach(function(r){h+=recipeCard(r,true)});
-    h+='<div style="margin-bottom:24px"></div>';
-  }
-  h+='<div style="font-size:12px;font-weight:700;color:#888;margin-bottom:8px;text-transform:uppercase">All Recipes</div>';
-  recipes.forEach(function(r,i){if(selMeals.indexOf(i)===-1)h+=recipeCard(r,false)});
-  main.innerHTML=h;
-}
-function recipeCard(r,hl){
-  var idx=-1;for(var i=0;i<recipes.length;i++){if(recipes[i].id===r.id){idx=i;break}}
-  var h='<div class="recipe-card'+(hl?" hl":"")+'"><div class="top"><div style="cursor:pointer;flex:1" onclick="toggleRecipe('+r.id+')">';
-  if(hl)h+='<div class="wk">★ This Week</div>';
-  h+='<h3>'+esc(r.name)+'</h3><div class="meta">'+esc(r.category)+' · '+dollars(r.cost)+' · '+esc(r.time)+'</div></div>';
-  h+='<button class="close" onclick="confirmDeleteRecipe('+r.id+',\''+esc(r.name).replace(/'/g,"\\'")+'\')">✕</button></div>';
-  if(expandedRecipe===r.id){
-    h+='<div class="detail"><div class="lbl">Ingredients</div><div class="pills">';
-    r.ingredients.forEach(function(ing){h+='<span class="pill">'+esc(ing.name)+(ing.qty?' ('+esc(ing.qty)+')':'')+'</span>'});
-    h+='</div><div class="lbl" style="margin-top:10px">Steps</div><ol>';
-    r.steps.forEach(function(s){h+='<li>'+esc(s)+'</li>'});
-    h+='</ol>';
-    if(!hl&&idx>=0)h+='<button class="btn" style="width:100%;margin-top:12px;font-size:13px;padding:10px" onclick="selectRecipeForWeek('+idx+')">★ Select for This Week</button>';
-    h+='</div>';
-  }
-  h+='</div>';return h;
-}
-
-/* ═══ GROCERY LIST ═══ */
-function renderGrocery(){
-  var m1=recipes[selMeals[0]],m2=recipes[selMeals[1]];
-  if(!m1||!m2){main.innerHTML="<p>Select meals first</p>";return}
-  var allIng=m1.ingredients.concat(m2.ingredients);
-  var seen={};var buckets={meat:[],vegetable:[],starch:[],fruit:[],other:[]};
-  allIng.forEach(function(ing){if(seen[ing.name])return;seen[ing.name]=true;
-    var m=invMatch(ing.name,inventory);if(m&&ll(m)>50)return;
-    var cat=ing.groceryCat||"other";if(!buckets[cat])cat="other";
-    buckets[cat].push({text:ing.name+(ing.qty?" — "+ing.qty:""),src:"recipe"});
-  });
-  function fillFrom(pool,cat,target){var cur=buckets[cat]?buckets[cat].length:0;var need=Math.max(0,target-cur);
-    var avail=shuf(pool.filter(function(p){return!seen[p.split("(")[0].trim()]}));
-    for(var i=0;i<Math.min(need,avail.length);i++)buckets[cat].push({text:avail[i],src:"pool"})}
-  fillFrom(MEAT_POOL,"meat",FILL.meat);fillFrom(VEG_POOL,"vegetable",FILL.vegetable);
-  fillFrom(STARCH_POOL,"starch",FILL.starch);fillFrom(FRUIT_POOL,"fruit",FILL.fruit);
-  var bk=shuf(BREAKFAST_POOL).slice(0,FILL.breakfast).map(function(p){return{text:p,src:"pool"}});
-  var fn=shuf(FUN_POOL).slice(0,FILL.fun).map(function(p){return{text:p,src:"pool"}});
-  var sections=[
-    {key:"meat",icon:"🥩",title:"Meat / Protein",items:buckets.meat},
-    {key:"veg",icon:"🥦",title:"Vegetables",items:buckets.vegetable},
-    {key:"starch",icon:"🥔",title:"Starch",items:buckets.starch},
-    {key:"fruit",icon:"🍎",title:"Fruits",items:buckets.fruit},
-    {key:"bk",icon:"🍳",title:"Breakfast (4-5 days, 2 ppl)",items:bk},
-    {key:"fun",icon:"🍫",title:"Fun / Snacks (4-5 days)",items:fn},
-    {key:"other",icon:"🍽️",title:"Other Recipe Items",items:buckets.other}
-  ];
-  var low=inventory.filter(isLow);
-  var total=0;sections.forEach(function(s){total+=s.items.length});total+=low.length;
-  var ckCount=0;for(var k in checkedItems)if(checkedItems[k])ckCount++;
-  var h='<div class="topbar"><div><h2 style="margin:0">Grocery List</h2><p style="color:#888;font-size:12px;margin-top:2px">'+ckCount+'/'+total+' checked</p></div><button class="btn-sec" onclick="rerollMeals()">↻ New Meals</button></div>';
-  h+='<div class="meal-cards">';
-  [{m:m1,i:0},{m:m2,i:1}].forEach(function(obj){
-    h+='<div class="meal-card"><button class="close" onclick="replaceMeal('+obj.i+')">✕</button>';
-    h+='<div class="tag">Meal '+(obj.i+1)+'</div><h3>'+esc(obj.m.name)+'</h3>';
-    h+='<div class="meta">'+dollars(obj.m.cost)+' · '+esc(obj.m.time)+'</div></div>';
-  });
-  h+='</div>';
-  sections.forEach(function(sec){
-    if(sec.items.length===0)return;
-    h+='<div class="section-hdr">'+sec.icon+' '+sec.title+'</div>';
-    sec.items.forEach(function(item,ii){
-      var k=sec.key+"-"+ii;var c=!!checkedItems[k];
-      h+='<div class="list-item'+(c?" done":"")+(item.src==="recipe"?" recipe-bg":"")+'" onclick="toggleCheck(\''+k+'\')">';
-      h+='<div class="cb'+(c?" on":"")+'">'+( c?"✓":"")+'</div>';
-      h+='<span style="flex:1">'+esc(item.text)+'</span>';
-      if(item.src==="recipe")h+='<span class="badge">Recipe</span>';
-      h+='</div>';
+// Register SW with auto-update: always check for new version on load
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(function(reg) {
+    // Check for update every time the page loads
+    reg.update();
+    // When a new SW is found, activate it immediately
+    reg.addEventListener('updatefound', function() {
+      var newSW = reg.installing;
+      newSW.addEventListener('statechange', function() {
+        if (newSW.state === 'activated') {
+          window.location.reload();
+        }
+      });
     });
   });
-  if(low.length>0){
-    h+='<div class="section-hdr red">⚠️ Low Inventory — Restock</div>';
-    low.forEach(function(item,i){
-      var k="l-"+i;var c=!!checkedItems[k];
-      h+='<div class="list-item'+(c?" done":"")+' restock-bg" onclick="toggleCheck(\''+k+'\')">';
-      h+='<div class="cb red'+(c?" on":"")+'">'+( c?"✓":"")+'</div>';
-      h+='<span style="flex:1">'+esc(item.name)+' ('+esc(item.amount)+')</span>';
-      h+='<span style="font-size:12px;font-weight:700;color:#e74c3c">'+ll(item)+'%</span></div>';
-    });
-  }
-  h+='<div style="margin-top:24px;padding-top:16px;border-top:2px solid #d4c9bc">';
-  h+='<button class="btn" style="width:100%;font-size:16px;padding:14px" onclick="confirmShopping()">✓ Confirm Shopping Complete</button>';
-  h+='<p style="color:#888;font-size:11px;text-align:center;margin-top:8px">Checked items will update your inventory to 100%</p></div>';
-  main.innerHTML=h;
 }
-/* ═══ ACTION HANDLERS ═══ */
-function confirmShopping(){
-  var overlay=document.createElement("div");overlay.className="overlay";overlay.id="confirm-overlay";
-  overlay.onclick=function(e){if(e.target===overlay)overlay.remove()};
-  var ckCount=0;for(var k in checkedItems)if(checkedItems[k])ckCount++;
-  var h='<div class="modal" style="max-width:340px;text-align:center">';
-  h+='<div style="font-size:40px;margin-bottom:8px">🛒</div>';
-  h+='<h3 style="margin-bottom:12px">Shopping Done?</h3>';
-  h+='<p style="color:#666;font-size:14px;margin-bottom:20px">'+ckCount+' checked items will be marked as fully stocked (100%) in your inventory.</p>';
-  h+='<div style="display:flex;gap:10px"><button class="btn-sec" style="flex:1" onclick="document.getElementById(\'confirm-overlay\').remove()">Cancel</button>';
-  h+='<button class="btn" style="flex:1" onclick="doConfirmShopping()">Confirm</button></div></div>';
-  overlay.innerHTML=h;document.body.appendChild(overlay);
-}
-function doConfirmShopping(){
-  var ws=wkStr();
-  // Collect names of all checked grocery items
-  var checkedNames=[];
-  // We need to rebuild the grocery sections to map keys back to names
-  var m1=recipes[selMeals[0]],m2=recipes[selMeals[1]];
-  if(m1&&m2){
-    var allIng=m1.ingredients.concat(m2.ingredients);
-    var seen={};var buckets={meat:[],vegetable:[],starch:[],fruit:[],other:[]};
-    allIng.forEach(function(ing){if(seen[ing.name])return;seen[ing.name]=true;
-      var m=invMatch(ing.name,inventory);if(m&&ll(m)>50)return;
-      var cat=ing.groceryCat||"other";if(!buckets[cat])cat="other";
-      buckets[cat].push({text:ing.name,src:"recipe"});
-    });
-    function fillFrom2(pool,cat,target){var cur=buckets[cat]?buckets[cat].length:0;var need=Math.max(0,target-cur);
-      var avail=shuf(pool.filter(function(p){return!seen[p.split("(")[0].trim()]}));
-      for(var i=0;i<Math.min(need,avail.length);i++)buckets[cat].push({text:avail[i],src:"pool"})}
-    fillFrom2(MEAT_POOL,"meat",FILL.meat);fillFrom2(VEG_POOL,"vegetable",FILL.vegetable);
-    fillFrom2(STARCH_POOL,"starch",FILL.starch);fillFrom2(FRUIT_POOL,"fruit",FILL.fruit);
-    var sections2=[
-      {key:"meat",items:buckets.meat},{key:"veg",items:buckets.vegetable},
-      {key:"starch",items:buckets.starch},{key:"fruit",items:buckets.fruit},
-      {key:"bk",items:shuf(BREAKFAST_POOL).slice(0,FILL.breakfast).map(function(p){return{text:p}})},
-      {key:"fun",items:shuf(FUN_POOL).slice(0,FILL.fun).map(function(p){return{text:p}})},
-      {key:"other",items:buckets.other}
-    ];
-    sections2.forEach(function(sec){sec.items.forEach(function(item,ii){
-      var k=sec.key+"-"+ii;
-      if(checkedItems[k])checkedNames.push(item.text);
-    })});
-    // Also collect checked low-inventory items
-    var low=inventory.filter(isLow);
-    low.forEach(function(item,i){if(checkedItems["l-"+i])checkedNames.push(item.name)});
-  }
-  // Update inventory: match checked names to inventory items, set to 100%
-  inventory=inventory.map(function(item){
-    var matched=false;
-    for(var i=0;i<checkedNames.length;i++){
-      var cn=checkedNames[i].toLowerCase();
-      var iname=item.name.toLowerCase();
-      if(cn.indexOf(iname)>=0||iname.indexOf(cn)>=0||
-        cn.split(/[\s,()]+/).filter(function(w){return w.length>3}).some(function(w){return iname.indexOf(w)>=0})){
-        matched=true;break;
-      }
-    }
-    if(matched)return Object.assign({},item,{levels:item.levels.concat([{week:ws,level:100}])});
-    return item;
-  });
-  sv("p_inv",inventory);
-  checkedItems={};
-  var el=document.getElementById("confirm-overlay");if(el)el.remove();
-  // Show success then go to inventory
-  curPage="inventory";render();
-  // Brief toast
-  var toast=document.createElement("div");
-  toast.style.cssText="position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2d6a4f;color:#fff;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:2000;box-shadow:0 4px 12px rgba(0,0,0,.2)";
-  toast.textContent="Inventory updated!";
-  document.body.appendChild(toast);
-  setTimeout(function(){toast.remove()},2500);
-}
-function setFilter(c){invFilter=c;render()}
-function toggleSort(c){if(invSort===c)invDir=invDir==="asc"?"desc":"asc";else{invSort=c;invDir="desc"}render()}
-function toggleCheck(k){checkedItems[k]=!checkedItems[k];render()}
-function toggleRecipe(id){expandedRecipe=expandedRecipe===id?null:id;render()}
-function confirmDeleteRecipe(id,name){
-  var overlay=document.createElement("div");overlay.className="overlay";overlay.id="confirm-overlay";
-  overlay.onclick=function(e){if(e.target===overlay)overlay.remove()};
-  var h='<div class="modal" style="max-width:340px;text-align:center">';
-  h+='<h3 style="margin-bottom:12px">Delete Recipe?</h3>';
-  h+='<p style="color:#666;font-size:14px;margin-bottom:20px">Are you sure you want to delete <strong>'+name+'</strong>? This cannot be undone.</p>';
-  h+='<div style="display:flex;gap:10px"><button class="btn-sec" style="flex:1" onclick="document.getElementById(\'confirm-overlay\').remove()">Cancel</button>';
-  h+='<button class="btn" style="flex:1;background:#e74c3c;box-shadow:0 2px 8px rgba(231,76,60,.25)" onclick="doDeleteRecipe('+id+')">Delete</button></div></div>';
-  overlay.innerHTML=h;document.body.appendChild(overlay);
-}
-function doDeleteRecipe(id){
-  // also fix selMeals if deleted recipe was selected
-  var oldIdx=-1;for(var i=0;i<recipes.length;i++){if(recipes[i].id===id){oldIdx=i;break}}
-  recipes=recipes.filter(function(r){return r.id!==id});
-  sv("p_rec",recipes);
-  // fix selMeals indices
-  selMeals=selMeals.map(function(s){if(s===oldIdx)return -1;if(s>oldIdx)return s-1;return s});
-  if(selMeals[0]<0||selMeals[0]>=recipes.length)selMeals[0]=0;
-  if(selMeals[1]<0||selMeals[1]>=recipes.length)selMeals[1]=Math.min(1,recipes.length-1);
-  sv("p_meals",selMeals);
-  var el=document.getElementById("confirm-overlay");if(el)el.remove();
-  render();
-}
-function selectRecipeForWeek(idx){
-  var m1=recipes[selMeals[0]];var m2=recipes[selMeals[1]];
-  // If already selected, skip
-  if(selMeals[0]===idx||selMeals[1]===idx){return}
-  var overlay=document.createElement("div");overlay.className="overlay";overlay.id="confirm-overlay";
-  overlay.onclick=function(e){if(e.target===overlay)overlay.remove()};
-  var h='<div class="modal" style="max-width:340px;text-align:center">';
-  h+='<h3 style="margin-bottom:12px">Replace Which Meal?</h3>';
-  h+='<p style="color:#666;font-size:13px;margin-bottom:16px">Choose which slot to replace with <strong>'+esc(recipes[idx].name)+'</strong></p>';
-  h+='<div style="display:grid;gap:10px">';
-  h+='<button class="btn-sec" style="padding:14px;font-size:14px" onclick="doSelectRecipe('+idx+',0)">Replace Meal 1: '+(m1?esc(m1.name):"Empty")+'</button>';
-  h+='<button class="btn-sec" style="padding:14px;font-size:14px" onclick="doSelectRecipe('+idx+',1)">Replace Meal 2: '+(m2?esc(m2.name):"Empty")+'</button>';
-  h+='<button style="background:0;border:0;color:#888;font-size:13px;cursor:pointer;padding:8px" onclick="document.getElementById(\'confirm-overlay\').remove()">Cancel</button>';
-  h+='</div></div>';
-  overlay.innerHTML=h;document.body.appendChild(overlay);
-}
-function doSelectRecipe(idx,slot){
-  selMeals[slot]=idx;
-  sv("p_meals",selMeals);checkedItems={};
-  var el=document.getElementById("confirm-overlay");if(el)el.remove();
-  render();
-}
-function updateCheckIn(id,val){checkInUpdates[id]=val}
-function resetCheckin(){checkInDone=false;checkInUpdates={};render()}
-function submitCheckin(){
-  var ws=wkStr();inventory=inventory.map(function(item){
-    if(checkInUpdates[item.id]!=null&&checkInUpdates[item.id]!=="")return Object.assign({},item,{levels:item.levels.concat([{week:ws,level:+checkInUpdates[item.id]}])});
-    return Object.assign({},item,{levels:item.levels.concat([{week:ws,level:Math.round(proj(item))}])});
-  });sv("p_inv",inventory);checkInDone=true;render();
-}
-function rerollMeals(){var sh=shuf(recipes.map(function(_,i){return i}));selMeals=[sh[0],sh[1]];sv("p_meals",selMeals);checkedItems={};render()}
-function replaceMeal(slot){var other=selMeals[slot===0?1:0];var av=recipes.map(function(_,i){return i}).filter(function(i){return i!==other});selMeals[slot]=av[Math.floor(Math.random()*av.length)];sv("p_meals",selMeals);checkedItems={};render()}
-
-/* ═══ ADD ITEM MODAL ═══ */
-function showAddItem(){
-  var overlay=document.createElement("div");overlay.className="overlay";overlay.id="modal-overlay";
-  overlay.onclick=function(e){if(e.target===overlay)overlay.remove()};
-  var cats=["Food Staples","Fridge Sauces","Kitchen Items","Laundry Items","Cleaning Supplies","Bathroom"];
-  var h='<div class="modal"><div class="hdr"><h3>Add Item</h3><button class="close" onclick="document.getElementById(\'modal-overlay\').remove()">✕</button></div>';
-  h+='<div class="field"><label>Name</label><input id="ai-name" placeholder="e.g. Olive Oil"></div>';
-  h+='<div class="field"><label>Category</label><select id="ai-cat">'+cats.map(function(c){return'<option>'+c+'</option>'}).join("")+'</select></div>';
-  h+='<div class="row2"><div class="field"><label>Urgency</label><select id="ai-urg"><option value="1">1 — Low</option><option value="2" selected>2 — Medium</option><option value="3">3 — High</option><option value="4">4 — Critical</option></select></div>';
-  h+='<div class="field"><label>Amount</label><input id="ai-amt" placeholder="1 bottle"></div></div>';
-  h+='<div class="field"><label>Level: <span id="ai-lbl">100</span>%</label><input type="range" id="ai-lvl" min="0" max="100" step="5" value="100" oninput="document.getElementById(\'ai-lbl\').textContent=this.value" style="width:100%;accent-color:#2d6a4f"></div>';
-  h+='<button class="btn" style="width:100%" onclick="addItem()">Add Item</button></div>';
-  overlay.innerHTML=h;document.body.appendChild(overlay);
-}
-function addItem(){
-  var name=document.getElementById("ai-name").value.trim();var amt=document.getElementById("ai-amt").value.trim();
-  if(!name||!amt)return;
-  var maxId=0;inventory.forEach(function(i){if(i.id>maxId)maxId=i.id});
-  inventory.push({id:maxId+1,name:name,category:document.getElementById("ai-cat").value,urgency:+document.getElementById("ai-urg").value,amount:amt,levels:[{week:wkStr(),level:+document.getElementById("ai-lvl").value}]});
-  sv("p_inv",inventory);document.getElementById("modal-overlay").remove();render();
-}
-
-/* ═══ ADD RECIPE MODAL ═══ */
-var arParsed=[];
-function showAddRecipe(){
-  arParsed=[];
-  var overlay=document.createElement("div");overlay.className="overlay";overlay.id="modal-overlay";
-  overlay.onclick=function(e){if(e.target===overlay)overlay.remove()};
-  var h='<div class="modal"><div class="hdr"><h3>Add Recipe</h3><button class="close" onclick="document.getElementById(\'modal-overlay\').remove()">✕</button></div>';
-  h+='<div class="field"><label>Name</label><input id="ar-name" placeholder="Chicken Alfredo"></div>';
-  h+='<div class="row3"><div class="field"><label>Type</label><select id="ar-cat"><option>Handhelds</option><option>Healthy</option><option selected>Bowls</option><option>Off Menu</option></select></div>';
-  h+='<div class="field"><label>Cost</label><select id="ar-cost"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>';
-  h+='<div class="field"><label>Prep</label><input id="ar-time" value="3 hours"></div></div>';
-  h+='<div class="field"><label>Ingredients (one per line)</label><textarea id="ar-ing" placeholder="Chicken Breast (2)\nBell Peppers (3)"></textarea></div>';
-  h+='<div id="ar-cats"></div>';
-  h+='<button class="btn-sec" style="width:100%;margin-bottom:12px" onclick="categorizeIngredients()">Categorize Ingredients</button>';
-  h+='<div class="field"><label>Steps (one per line)</label><textarea id="ar-steps" placeholder="Season chicken\nSear in pan"></textarea></div>';
-  h+='<button class="btn" style="width:100%" onclick="addRecipe()">Add Recipe</button></div>';
-  overlay.innerHTML=h;document.body.appendChild(overlay);
-}
-function categorizeIngredients(){
-  var lines=document.getElementById("ar-ing").value.split("\n").filter(function(l){return l.trim()});
-  arParsed=lines.map(function(l){return{name:l.trim(),qty:"",groceryCat:"other"}});
-  var gc=["meat","vegetable","starch","fruit","other"];
-  var h='<div style="background:#fafaf8;border-radius:10px;padding:12px;margin-bottom:12px">';
-  arParsed.forEach(function(ing,i){
-    h+='<div class="cat-row"><span>'+esc(ing.name)+'</span><select onchange="arParsed['+i+'].groceryCat=this.value">';
-    gc.forEach(function(g){h+='<option value="'+g+'">'+g[0].toUpperCase()+g.slice(1)+'</option>'});
-    h+='</select></div>';
-  });
-  h+='</div>';document.getElementById("ar-cats").innerHTML=h;
-}
-function addRecipe(){
-  var name=document.getElementById("ar-name").value.trim();
-  if(!name||arParsed.length===0){alert("Enter name and categorize ingredients first");return}
-  var maxId=0;recipes.forEach(function(r){if(r.id>maxId)maxId=r.id});
-  var steps=document.getElementById("ar-steps").value.split("\n").filter(function(l){return l.trim()});
-  recipes.push({id:maxId+1,name:name,category:document.getElementById("ar-cat").value,cost:+document.getElementById("ar-cost").value,time:document.getElementById("ar-time").value,ingredients:arParsed.slice(),steps:steps});
-  sv("p_rec",recipes);document.getElementById("modal-overlay").remove();render();
-}
-
-/* ═══ TAB NAVIGATION ═══ */
-document.getElementById("tabs").addEventListener("click",function(e){
-  var btn=e.target.closest("button");if(!btn)return;
-  curPage=btn.dataset.page;render();
-});
-
-/* ═══ INIT ═══ */
-render();
 </script>
 </body>
 </html>
