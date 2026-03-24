@@ -1,12 +1,14 @@
 /* ═══════════════════════════════════════════════════════════════
-   GOOGLE SHEETS SYNC
-   Replace this URL with your deployed Apps Script web app URL
-   (See SETUP_GUIDE.md for instructions)
+   GOOGLE SHEETS SYNC v2
+   Uses JSONP for reads + hidden iframe form for writes
+   Both methods bypass CORS/redirect issues with Apps Script
    ═══════════════════════════════════════════════════════════════ */
 var SHEET_URL = "https://script.google.com/macros/s/AKfycbxv0FoiaulXho8-2Lmb2LA7d-UabtyADb184F90yNDLdiQI1dGSjfKcloiDyGI-LB0xVQ/exec";
 var syncOK = SHEET_URL !== "YOUR_APPS_SCRIPT_URL";
 var syncBusy = false;
-var POLL_MS = 30000; // poll every 30 seconds
+var POLL_MS = 30000;
+var writeQueue = [];
+var writing = false;
 
 /* ═══ PERSISTENCE ═══ */
 function ld(k, fb) { try { var d = localStorage.getItem(k); return d ? JSON.parse(d) : fb } catch (e) { return fb } }
@@ -17,39 +19,100 @@ function sv(k, v) {
   if (syncOK) pushToSheet(k, v);
 }
 
-function pushToSheet(k, v) {
-  try {
-    fetch(SHEET_URL, {
-      method: "POST", mode: "no-cors",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ key: k, value: v })
-    });
-  } catch (e) { }
+/* ═══ WRITE: Hidden iframe + form POST ═══ */
+function ensureSyncFrame() {
+  var f = document.getElementById("sync-frame");
+  if (!f) {
+    f = document.createElement("iframe");
+    f.id = "sync-frame";
+    f.name = "sync-frame";
+    f.style.cssText = "display:none;width:0;height:0;border:0";
+    document.body.appendChild(f);
+  }
+  return f;
 }
 
+function pushToSheet(k, v) {
+  writeQueue.push({ key: k, value: v });
+  processQueue();
+}
+
+function processQueue() {
+  if (writing || writeQueue.length === 0) return;
+  writing = true;
+  var item = writeQueue.shift();
+  setDot("load");
+
+  ensureSyncFrame();
+  var form = document.createElement("form");
+  form.method = "POST";
+  form.action = SHEET_URL;
+  form.target = "sync-frame";
+  form.style.display = "none";
+
+  var input = document.createElement("textarea");
+  input.name = "payload";
+  input.value = JSON.stringify({ key: item.key, value: item.value });
+  form.appendChild(input);
+
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
+
+  // Give it time then process next in queue
+  setTimeout(function () {
+    writing = false;
+    setDot("on");
+    processQueue();
+  }, 2000);
+}
+
+/* ═══ READ: JSONP via script tag ═══ */
+var jsonpCounter = 0;
 function pullFromSheet() {
   if (!syncOK || syncBusy) return;
   syncBusy = true;
   setDot("load");
-  fetch(SHEET_URL + "?t=" + Date.now())
-    .then(function (r) { return r.json() })
-    .then(function (data) {
-      syncBusy = false;
-      setDot("on");
-      if (!data || !data.p_inv) return;
-      // Merge: sheet wins (latest truth)
-      var changed = false;
-      if (data.p_inv) {
-        var remote = data.p_inv;
-        remote.forEach(function (it) { it.levels.forEach(function (l) { l.level = clamp(l.level) }) });
+
+  var cbName = "_pantryCallback" + (jsonpCounter++);
+  var timeout = setTimeout(function () {
+    syncBusy = false;
+    setDot("off");
+    cleanup();
+  }, 10000);
+
+  function cleanup() {
+    delete window[cbName];
+    var el = document.getElementById(cbName);
+    if (el) el.remove();
+  }
+
+  window[cbName] = function (data) {
+    clearTimeout(timeout);
+    syncBusy = false;
+    setDot("on");
+    cleanup();
+
+    if (!data) return;
+    var changed = false;
+    if (data.p_inv) {
+      var remote = data.p_inv;
+      if (Array.isArray(remote)) {
+        remote.forEach(function (it) { if (it.levels) it.levels.forEach(function (l) { l.level = clamp(l.level) }) });
         if (JSON.stringify(remote) !== JSON.stringify(inventory)) { inventory = remote; localStorage.setItem("p_inv", JSON.stringify(inventory)); changed = true }
       }
-      if (data.p_rec && JSON.stringify(data.p_rec) !== JSON.stringify(recipes)) { recipes = data.p_rec; localStorage.setItem("p_rec", JSON.stringify(recipes)); changed = true }
-      if (data.p_meals && JSON.stringify(data.p_meals) !== JSON.stringify(selMeals)) { selMeals = data.p_meals; localStorage.setItem("p_meals", JSON.stringify(selMeals)); changed = true }
-      if (data.p_gedits && JSON.stringify(data.p_gedits) !== JSON.stringify(gEdits)) { gEdits = data.p_gedits; localStorage.setItem("p_gedits", JSON.stringify(gEdits)); changed = true }
-      if (changed) render();
-    })
-    .catch(function () { syncBusy = false; setDot("off") });
+    }
+    if (data.p_rec && JSON.stringify(data.p_rec) !== JSON.stringify(recipes)) { recipes = data.p_rec; localStorage.setItem("p_rec", JSON.stringify(recipes)); changed = true }
+    if (data.p_meals && JSON.stringify(data.p_meals) !== JSON.stringify(selMeals)) { selMeals = data.p_meals; localStorage.setItem("p_meals", JSON.stringify(selMeals)); changed = true }
+    if (data.p_gedits && JSON.stringify(data.p_gedits) !== JSON.stringify(gEdits)) { gEdits = data.p_gedits; localStorage.setItem("p_gedits", JSON.stringify(gEdits)); changed = true }
+    if (changed) render();
+  };
+
+  var script = document.createElement("script");
+  script.id = cbName;
+  script.src = SHEET_URL + "?callback=" + cbName + "&t=" + Date.now();
+  script.onerror = function () { clearTimeout(timeout); syncBusy = false; setDot("off"); cleanup() };
+  document.head.appendChild(script);
 }
 
 function setDot(state) {
